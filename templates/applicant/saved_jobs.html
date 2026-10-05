@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Bookmarked Vacancies - Saved Jobs - ATS{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4" style="max-width: 1040px;">
+    <!-- Header -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1 rounded-pill mb-2">
+                    <i class="bi bi-bookmark-heart-fill me-1"></i> Talent Bookmarks
+                </span>
+                <h2 class="fw-bold mb-1 text-dark">My Saved Career Vacancies</h2>
+                <p class="text-muted small mb-0">Quickly revisit and 1-click apply to bookmarked positions across verified employers.</p>
+            </div>
+            <div>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-search me-1"></i> Browse More Jobs
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Jobs List -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold text-dark mb-0">
+            Bookmarked Opportunities
+            <span class="badge bg-secondary rounded-pill ms-1">{{ saved_jobs|length }}</span>
+        </h5>
+    </div>
+
+    {% if saved_jobs %}
+        <div class="row row-cols-1 g-3 mb-5">
+            {% for job in saved_jobs %}
+                <div class="col" id="saved-job-card-{{ job.job_id }}">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white hover-shadow transition">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                            <div class="flex-grow-1">
+                                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-medium">
+                                        {{ job.department }}
+                                    </span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        {{ job.job_type }}
+                                    </span>
+                                    {% if job.experience_level %}
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                            {{ job.experience_level }}
+                                        </span>
+                                    {% endif %}
+                                    <small class="text-muted ms-auto">
+                                        Saved on {{ job.saved_at.strftime('%b %d, %Y') if job.saved_at else '' }}
+                                    </small>
+                                </div>
+
+                                <h4 class="fw-bold mb-1">
+                                    <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="text-decoration-none text-dark">
+                                        {{ job.title }}
+                                    </a>
+                                </h4>
+
+                                <div class="text-muted small mb-2">
+                                    <i class="bi bi-building me-1"></i> <strong>{{ job.company_name }}</strong>
+                                    &bull; <i class="bi bi-geo-alt me-1"></i> {{ job.location }}
+                                </div>
+
+                                {% if job.salary_min and job.salary_max %}
+                                    <div class="text-secondary small fw-medium mb-3">
+                                        <i class="bi bi-cash-stack me-1 text-success"></i>
+                                        ${{ "{:,.0f}".format(job.salary_min) }} - ${{ "{:,.0f}".format(job.salary_max) }} / year
+                                    </div>
+                                {% endif %}
+
+                                <p class="text-muted small mb-0" style="max-width: 750px;">
+                                    {{ job.description[:180] }}...
+                                </p>
+                            </div>
+
+                            <!-- Actions: 1-Click Apply & Remove Bookmark -->
+                            <div class="d-flex flex-column gap-2 text-end align-self-center">
+                                <a href="{{ url_for('apply', job_id=job.job_id) }}" class="btn btn-primary px-4 fw-medium">
+                                    <i class="bi bi-send-fill me-1"></i> 1-Click Apply
+                                </a>
+                                <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="btn btn-outline-secondary btn-sm">
+                                    View Vacancy Details
+                                </a>
+                                <button type="button" class="btn btn-link text-danger btn-sm p-0 text-decoration-none remove-saved-btn" data-job-id="{{ job.job_id }}">
+                                    <i class="bi bi-trash3 me-1"></i> Remove Bookmark
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card p-5 text-center bg-white border-0 shadow-sm rounded-4 mb-5">
+            <i class="bi bi-bookmark-heart text-muted opacity-50" style="font-size: 3.5rem;"></i>
+            <h5 class="mt-3 text-secondary">No Bookmarked Jobs Yet</h5>
+            <p class="text-muted small">When exploring vacancies, click the heart bookmark icon to save roles for instant 1-click applications.</p>
+            <div>
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-sm">Browse Open Jobs</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.remove-saved-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const jobId = this.getAttribute('data-job-id');
+            const card = document.getElementById('saved-job-card-' + jobId);
+
+            fetch('/jobs/' + jobId + '/bookmark', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'removed' && card) {
+                    card.style.opacity = '0';
+                    card.style.transition = 'opacity 0.3s ease';
+                    setTimeout(() => card.remove(), 300);
+                }
+            })
+            .catch(err => console.error(err));
+        });
+    });
+});
+</script>
+{% endblock %}

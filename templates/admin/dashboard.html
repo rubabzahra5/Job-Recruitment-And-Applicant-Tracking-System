@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block title %}SaaS Admin Intelligence Hub - ATS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-white p-3 p-md-4 rounded-4 shadow-sm border">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h3 class="fw-bold mb-0 text-dark">SaaS Business & Executive Control Center</h3>
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-6">
+                    Platform Administrator
+                </span>
+            </div>
+            <div class="text-muted small">
+                Tenant Organizations, Global User Directory, Stripe Subscription Metrics & Growth Analytics
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('admin_email_logs') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-envelope-paper me-1"></i> System Email Logs
+            </a>
+            <a href="{{ url_for('pricing') }}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-gem me-1"></i> Public Pricing Matrix
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 Top KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Total Companies</div>
+                        <div class="display-6 fw-bold text-dark mt-1">{{ kpi.total_companies }}</div>
+                        <div class="small text-muted mt-1"><i class="bi bi-buildings me-1"></i>Registered tenants</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary-subtle text-primary">
+                        <i class="bi bi-building-check fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Total Users</div>
+                        <div class="display-6 fw-bold text-primary mt-1">{{ kpi.total_users }}</div>
+                        <div class="small text-muted mt-1"><i class="bi bi-people me-1"></i>Across all accounts</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-info-subtle text-info">
+                        <i class="bi bi-person-check-fill fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white border-start border-4 border-success">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Monthly Recurring Revenue</div>
+                        <div class="display-6 fw-bold text-success mt-1">${{ "{:,.0f}".format(kpi.mrr) }}</div>
+                        <div class="small text-success mt-1"><i class="bi bi-graph-up-arrow me-1"></i>Active Stripe MRR</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success-subtle text-success">
+                        <i class="bi bi-currency-dollar fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Active Subscriptions</div>
+                        <div class="display-6 fw-bold text-dark mt-1">{{ kpi.active_subscriptions }}</div>
+                        <div class="small text-muted mt-1"><i class="bi bi-credit-card me-1"></i>Paid SaaS organizations</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-warning-subtle text-warning">
+                        <i class="bi bi-shield-check fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Charts: Signups Over Time & Subscription Distribution -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-graph-up text-primary me-2"></i>User Signups Over Time (Last 30 Days)
+                        </h5>
+                        <div class="text-muted small">Daily trajectory of new applicant and recruiter registrations</div>
+                    </div>
+                    <span class="badge bg-light text-muted border">Daily Trend</span>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="signupChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-0">
+                            <i class="bi bi-pie-chart text-warning me-2"></i>Subscription Tiers
+                        </h5>
+                        <div class="text-muted small">Free vs Basic vs Pro distribution</div>
+                    </div>
+                    <span class="badge bg-light text-muted border">Active Plans</span>
+                </div>
+                <div style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="planPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2 Tables: Recent Company Signups & Recent Subscription Upgrades -->
+    <div class="row g-4 mb-5">
+        <!-- Table 1: Recent Company Signups -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-buildings text-primary me-2"></i>Recent Company Signups
+                    </h5>
+                    <span class="badge bg-secondary-subtle text-secondary">{{ recent_companies|length }} tenants</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Company</th>
+                                <th>Current Plan</th>
+                                <th>Joined</th>
+                                <th class="text-end">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_companies %}
+                                {% for comp in recent_companies %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ comp.name }}</div>
+                                            <div class="small text-muted">/careers/{{ comp.slug }}</div>
+                                        </td>
+                                        <td>
+                                            {% if comp.plan_name == 'Pro' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">Pro Plan</span>
+                                            {% elif comp.plan_name == 'Basic' %}
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Basic Plan</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary">Free Tier</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="small text-muted">
+                                            {{ comp.created_at.strftime('%b %d, %Y') if comp.created_at else '-' }}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if comp.is_verified %}
+                                                <span class="badge bg-success"><i class="bi bi-patch-check me-1"></i>Verified</span>
+                                            {% else %}
+                                                <span class="badge bg-light text-muted border">Active</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted small">No company signups found.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table 2: Recent Subscription Upgrades -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-credit-card-2-front text-success me-2"></i>Recent Subscription Upgrades
+                    </h5>
+                    <span class="badge bg-secondary-subtle text-secondary">{{ recent_subscriptions|length }} records</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>Organization</th>
+                                <th>Plan</th>
+                                <th>Billing Cycle</th>
+                                <th class="text-end">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if recent_subscriptions %}
+                                {% for sub in recent_subscriptions %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ sub.company_name }}</div>
+                                            <div class="small text-muted">Stripe Customer #{{ sub.company_id }}</div>
+                                        </td>
+                                        <td>
+                                            {% if sub.plan_name == 'Pro' %}
+                                                <span class="badge bg-success"><i class="bi bi-star-fill me-1"></i>Pro ($149)</span>
+                                            {% elif sub.plan_name == 'Basic' %}
+                                                <span class="badge bg-primary">Basic ($49)</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Free ($0)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="small text-muted">
+                                            {{ sub.current_period_end.strftime('%b %d, %Y') if sub.current_period_end else 'Monthly auto-renew' }}
+                                        </td>
+                                        <td class="text-end">
+                                            {% if sub.status == 'active' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary">{{ sub.status }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted small">No subscription upgrade records yet.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart 1: Signups Over Time (Line Chart)
+    const signupCtx = document.getElementById('signupChart').getContext('2d');
+    const signupLabels = {{ chart_signup_labels|safe }};
+    const signupData = {{ chart_signup_data|safe }};
+
+    new Chart(signupCtx, {
+        type: 'line',
+        data: {
+            labels: signupLabels,
+            datasets: [{
+                label: 'New Signups',
+                data: signupData,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.12)',
+                tension: 0.35,
+                fill: true,
+                pointBackgroundColor: '#0d6efd',
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+
+    // Chart 2: Subscription Distribution (Pie/Doughnut Chart: Free/Basic/Pro)
+    const planCtx = document.getElementById('planPieChart').getContext('2d');
+    const planLabels = {{ chart_plan_labels|safe }};
+    const planData = {{ chart_plan_data|safe }};
+
+    new Chart(planCtx, {
+        type: 'pie',
+        data: {
+            labels: planLabels,
+            datasets: [{
+                data: planData,
+                backgroundColor: [
+                    '#6c757d', // Free
+                    '#0d6efd', // Basic
+                    '#198754'  // Pro
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 14, padding: 16 }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

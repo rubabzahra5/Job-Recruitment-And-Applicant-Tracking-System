@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Careers at {{ company.name }} - ATS{% endblock %}
+
+{% block extra_head %}
+<style>
+:root {
+    --company-brand: {{ company.brand_color or '#2563eb' }};
+    --company-brand-text: {{ company.brand_text_color or '#ffffff' }};
+}
+.brand-hero {
+    background-color: var(--company-brand);
+    color: var(--company-brand-text);
+}
+.btn-brand {
+    background-color: var(--company-brand);
+    color: var(--company-brand-text);
+    border: none;
+}
+.btn-brand:hover {
+    filter: brightness(0.9);
+    color: var(--company-brand-text);
+}
+.border-brand {
+    border-color: var(--company-brand) !important;
+}
+.text-brand {
+    color: var(--company-brand) !important;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4">
+    <!-- Branded Hero Banner -->
+    <div class="brand-hero p-4 p-md-5 mb-4 rounded-4 shadow-sm">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                {% if company.logo_filename %}
+                    <img src="{{ url_for('download_logo', filename=company.logo_filename) }}" alt="{{ company.name }} Logo" class="mb-3 bg-white p-2 rounded shadow-xs" style="max-height: 55px;">
+                {% endif %}
+                <h1 class="display-6 fw-bold mb-2">{{ company.name }} Careers</h1>
+                <p class="lead mb-3 opacity-90">
+                    Join our team in {{ company.location }}. We are hiring talented professionals to shape the future of {{ company.industry or 'our industry' }}.
+                </p>
+                <div class="d-flex flex-wrap gap-3 small opacity-75">
+                    <span><i class="bi bi-geo-alt me-1"></i> {{ company.location }}</span>
+                    {% if company.website %}
+                        <span>
+                            <a href="{{ company.website }}" target="_blank" class="text-white text-decoration-underline">
+                                <i class="bi bi-link-45deg me-1"></i> {{ company.website }}
+                            </a>
+                        </span>
+                    {% endif %}
+                    <span><i class="bi bi-briefcase me-1"></i> {{ jobs|length }} Open Vacancies</span>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <i class="bi bi-buildings opacity-50" style="font-size: 6rem;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Company Description Box -->
+    {% if company.description %}
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <h5 class="fw-bold mb-2 text-dark">About {{ company.name }}</h5>
+            <p class="text-secondary small mb-0" style="line-height: 1.6;">
+                {{ company.description }}
+            </p>
+        </div>
+    {% endif %}
+
+    <!-- Open Positions Grid -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-bold mb-0">Open Positions at {{ company.name }}</h4>
+        <span class="badge bg-secondary rounded-pill fs-6">{{ jobs|length }} Available</span>
+    </div>
+
+    {% if jobs %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-5">
+            {% for job in jobs %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rounded-4 hover-shadow transition bg-white">
+                        <div class="card-body d-flex flex-column justify-content-between p-4">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <span class="badge bg-light text-brand border border-brand small fw-medium">
+                                        {{ job.department }}
+                                    </span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        {{ job.job_type }}
+                                    </span>
+                                </div>
+                                <h5 class="card-title fw-bold mb-2">
+                                    <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="text-decoration-none text-dark">
+                                        {{ job.title }}
+                                    </a>
+                                </h5>
+                                <div class="text-muted small mb-2">
+                                    <i class="bi bi-geo-alt me-1"></i> {{ job.location }}
+                                </div>
+                                {% if job.salary_min and job.salary_max %}
+                                    <div class="small fw-semibold text-secondary mb-3">
+                                        <i class="bi bi-cash-stack me-1 text-success"></i>
+                                        ${{ "{:,.0f}".format(job.salary_min) }} - ${{ "{:,.0f}".format(job.salary_max) }} / yr
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="pt-3 border-top d-flex justify-content-between align-items-center mt-3">
+                                <span class="small text-muted">
+                                    <i class="bi bi-people me-1"></i> {{ job.applicant_count }} applicant(s)
+                                </span>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="btn btn-outline-secondary btn-sm">
+                                        Details
+                                    </a>
+                                    <a href="{{ url_for('apply', job_id=job.job_id) }}" class="btn btn-brand btn-sm">
+                                        Apply Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card p-5 text-center bg-white border-0 shadow-sm rounded-4 mb-5">
+            <i class="bi bi-briefcase text-muted" style="font-size: 3rem;"></i>
+            <h5 class="mt-3 text-secondary">No Active Openings</h5>
+            <p class="text-muted small">There are currently no active job vacancies listed for {{ company.name }}. Check back soon!</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

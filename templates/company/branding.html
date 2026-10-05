@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Brand & Career Page Settings - ATS{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4" style="max-width: 860px;">
+    <!-- Header -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-palette-fill text-warning"></i> Brand & Career Portal Settings
+                </h3>
+                <p class="text-muted small mb-0">
+                    Customize your company's visual identity, brand hex colors, logo, and dedicated career page.
+                </p>
+            </div>
+            {% if company.slug %}
+                <a href="{{ url_for('company_career_page', slug=company.slug) }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Preview Live Career Page
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pro Tier Gate Banner if not allowed -->
+    {% if not can_brand %}
+        <div class="card border-warning bg-warning-subtle shadow-sm rounded-4 p-4 mb-4">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-gem text-warning-emphasis fs-2"></i>
+                <div>
+                    <h5 class="fw-bold text-warning-emphasis mb-1">Custom Branding is a Pro Feature</h5>
+                    <p class="small text-muted mb-2">
+                        Your organization is currently on the <strong>{{ subscription.plan_name if subscription else 'Free' }} Plan</strong>.
+                        Upgrade to <strong>Pro ($149/mo)</strong> to unlock custom brand colors, custom logo headers, and a white-labeled career portal.
+                    </p>
+                    <a href="{{ url_for('pricing') }}" class="btn btn-warning btn-sm fw-bold">
+                        <i class="bi bi-arrow-up-circle me-1"></i> Upgrade to Pro Plan
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Branding Form -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white">
+        <form method="POST" action="{{ url_for('company_branding') }}" enctype="multipart/form-data">
+            <!-- 1. Logo Asset -->
+            <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-image me-2"></i>Company Logo</h5>
+            <div class="row align-items-center mb-4 p-3 bg-light rounded-3 border">
+                <div class="col-md-3 text-center mb-3 mb-md-0">
+                    {% if company.logo_filename %}
+                        <img src="{{ url_for('download_logo', filename=company.logo_filename) }}" alt="Logo" class="img-fluid rounded border shadow-xs" style="max-height: 80px;">
+                    {% else %}
+                        <div class="bg-white border rounded p-3 text-muted small d-flex flex-column align-items-center justify-content-center" style="height: 80px;">
+                            <i class="bi bi-building fs-3"></i>
+                            <span>No Logo</span>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-9">
+                    <label class="form-label fw-semibold small">Upload New Logo (PNG, JPG, SVG, WebP)</label>
+                    <input type="file" name="logo" class="form-control" accept=".png,.jpg,.jpeg,.svg,.webp" {% if not can_brand %}disabled{% endif %}>
+                    <div class="form-text">Recommended size: 400x120px with transparent background.</div>
+                </div>
+            </div>
+
+            <!-- 2. Brand Colors -->
+            <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-brush me-2"></i>Theme & Brand Colors</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Primary Brand Color</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="color" name="brand_color" id="brand_color" class="form-control form-control-color" value="{{ company.brand_color or '#2563eb' }}" {% if not can_brand %}disabled{% endif %}>
+                        <span class="small font-monospace text-muted" id="brand_hex">{{ company.brand_color or '#2563eb' }}</span>
+                    </div>
+                    <div class="form-text">Used as primary theme color across your public career page.</div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold small">Header Text / Contrast Color</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="color" name="brand_text_color" id="brand_text_color" class="form-control form-control-color" value="{{ company.brand_text_color or '#ffffff' }}" {% if not can_brand %}disabled{% endif %}>
+                        <span class="small font-monospace text-muted" id="text_hex">{{ company.brand_text_color or '#ffffff' }}</span>
+                    </div>
+                    <div class="form-text">Color for banner text and buttons.</div>
+                </div>
+            </div>
+
+            <!-- 3. Live Preview Card -->
+            <h5 class="fw-bold text-secondary mb-3"><i class="bi bi-display me-2"></i>Live Banner Preview</h5>
+            <div class="rounded-4 p-4 mb-4 text-center border shadow-xs" id="preview_box" style="background-color: {{ company.brand_color or '#2563eb' }}; color: {{ company.brand_text_color or '#ffffff' }}; transition: all 0.2s;">
+                {% if company.logo_filename %}
+                    <img src="{{ url_for('download_logo', filename=company.logo_filename) }}" alt="Logo" class="mb-2" style="max-height: 45px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));">
+                {% endif %}
+                <h4 class="fw-bold mb-1">{{ company.name }} Careers</h4>
+                <p class="small mb-0 opacity-75">Explore open engineering, product, and data opportunities.</p>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                <a href="{{ url_for('recruiter_dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+                <button type="submit" class="btn btn-primary px-4 fw-semibold" {% if not can_brand %}disabled{% endif %}>
+                    <i class="bi bi-save me-1"></i> Save Branding Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const brandColorInput = document.getElementById('brand_color');
+const brandTextInput = document.getElementById('brand_text_color');
+const previewBox = document.getElementById('preview_box');
+const brandHex = document.getElementById('brand_hex');
+const textHex = document.getElementById('text_hex');
+
+brandColorInput.addEventListener('input', function(e) {
+    previewBox.style.backgroundColor = e.target.value;
+    brandHex.innerText = e.target.value;
+});
+
+brandTextInput.addEventListener('input', function(e) {
+    previewBox.style.color = e.target.value;
+    textHex.innerText = e.target.value;
+});
+</script>
+{% endblock %}

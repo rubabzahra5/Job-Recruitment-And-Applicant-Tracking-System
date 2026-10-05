@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}Apply for {{ job.title }} - ATS{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4" style="max-width: 880px;">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Jobs</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('job_detail', job_id=job.job_id) }}">{{ job.title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Apply</li>
+        </ol>
+    </nav>
+
+    <div class="card border-0 shadow-sm rounded-4 bg-white p-4 p-md-5">
+        <div class="border-bottom pb-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h2 class="fw-bold mb-1">Submit Your Application</h2>
+                    <p class="text-muted mb-0">
+                        Position: <strong class="text-dark">{{ job.title }}</strong> at <strong class="text-primary">{{ job.company_name }}</strong>
+                    </p>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill">
+                    <i class="bi bi-cpu me-1"></i> AI Resume Auto-Fill Available
+                </span>
+            </div>
+        </div>
+
+        <!-- FEATURE 7: AI RESUME PARSER DROPZONE & FAST UPLOAD -->
+        <div class="p-3 mb-4 rounded-3 border border-primary-subtle bg-primary-subtle bg-opacity-10">
+            <div class="d-flex align-items-start gap-3">
+                <i class="bi bi-file-earmark-person-fill text-primary fs-2"></i>
+                <div class="flex-grow-1">
+                    <h6 class="fw-bold text-dark mb-1">Instant Resume Parser</h6>
+                    <p class="small text-muted mb-2">
+                        Upload your PDF or DOCX resume first. Our parser extracts your name, email, phone number, and automatically checks matching skills from our database taxonomy.
+                    </p>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-sm-8">
+                            <input type="file" id="resumeParserInput" class="form-control form-control-sm" accept=".pdf,.doc,.docx">
+                        </div>
+                        <div class="col-sm-4 d-grid">
+                            <button type="button" id="btnParseResume" class="btn btn-sm btn-outline-primary fw-medium">
+                                <span id="parseSpinner" class="spinner-border spinner-border-sm me-1 d-none" role="status"></span>
+                                <i class="bi bi-lightning-charge me-1" id="parseIcon"></i> Parse & Auto-Fill
+                            </button>
+                        </div>
+                    </div>
+                    <div id="parseAlert" class="mt-2 d-none"></div>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" action="{{ url_for('apply', job_id=job.job_id) }}" enctype="multipart/form-data" id="applicationForm">
+            <!-- 1. Contact Information -->
+            <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-person me-2"></i>Personal & Contact Details</h5>
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">First Name <span class="text-danger">*</span></label>
+                    <input type="text" name="first_name" id="first_name" class="form-control" required placeholder="Jane">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">Last Name <span class="text-danger">*</span></label>
+                    <input type="text" name="last_name" id="last_name" class="form-control" required placeholder="Doe">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" name="email" id="email" class="form-control" required placeholder="jane.doe@example.com">
+                    <div class="form-text">Used for live tracking and interview scheduling emails.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-medium">Phone Number</label>
+                    <input type="tel" name="phone" id="phone" class="form-control" placeholder="+1 (555) 019-2834">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium">Current Location</label>
+                    <input type="text" name="location" id="location" class="form-control" placeholder="Seattle, WA">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium">LinkedIn Profile URL</label>
+                    <input type="url" name="linkedin_url" class="form-control" placeholder="https://linkedin.com/in/janedoe">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-medium">Portfolio / GitHub URL</label>
+                    <input type="url" name="portfolio_url" class="form-control" placeholder="https://github.com/janedoe">
+                </div>
+            </div>
+
+            <!-- 2. Technical Skills Multi-Select (Auto-checked by Resume Parser) -->
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-secondary"><i class="bi bi-tools me-2"></i>Technical Competencies & Skills</h5>
+                <span class="badge bg-secondary-subtle text-secondary small" id="skillsMatchBadge">0 skills selected</span>
+            </div>
+            <p class="small text-muted mb-2">Verified skills are automatically checked when parsing your resume or you can select them manually:</p>
+            <div class="p-3 bg-light rounded-3 mb-4 border">
+                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2">
+                    {% for skill in skills %}
+                        <div class="col">
+                            <div class="form-check">
+                                <input class="form-check-input skill-checkbox" type="checkbox" name="skills" value="{{ skill.skill_id }}" id="skill_{{ skill.skill_id }}">
+                                <label class="form-check-label small fw-medium" for="skill_{{ skill.skill_id }}">
+                                    {{ skill.skill_name }}
+                                </label>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 3. Resume & Documents -->
+            <h5 class="fw-bold mb-3 text-secondary"><i class="bi bi-file-earmark-arrow-up me-2"></i>Official Application Resume</h5>
+            <div class="mb-4">
+                <label class="form-label fw-medium">Resume File (PDF, DOCX) <span class="text-danger">*</span></label>
+                <input type="file" name="resume" id="officialResumeInput" class="form-control" accept=".pdf,.doc,.docx" required>
+                <div class="form-text">Max file size: 16 MB. Supported formats: .pdf, .docx</div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-medium">Cover Letter / Note to Recruiter</label>
+                <textarea name="cover_letter" class="form-control" rows="4" placeholder="Briefly describe your interest in this role, relevant achievements, and alignment with the team..."></textarea>
+            </div>
+
+            <!-- Notice on DBMS Constraints -->
+            <div class="alert alert-info py-2 px-3 small mb-4 d-flex align-items-center">
+                <i class="bi bi-shield-check me-2 fs-5"></i>
+                <span>PostgreSQL trigger <code>trg_validate_job_application</code> will verify active job vacancy status prior to record commit.</span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                    <i class="bi bi-check2-circle me-1"></i> Submit Application
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const parserInput = document.getElementById('resumeParserInput');
+    const btnParse = document.getElementById('btnParseResume');
+    const parseSpinner = document.getElementById('parseSpinner');
+    const parseIcon = document.getElementById('parseIcon');
+    const parseAlert = document.getElementById('parseAlert');
+    const officialResume = document.getElementById('officialResumeInput');
+    const skillsBadge = document.getElementById('skillsMatchBadge');
+
+    function updateSkillsCount() {
+        const checked = document.querySelectorAll('.skill-checkbox:checked').length;
+        skillsBadge.textContent = checked + ' skill(s) selected';
+    }
+
+    document.querySelectorAll('.skill-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateSkillsCount);
+    });
+
+    // Auto trigger parsing if user selects a file in parserInput
+    parserInput.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            runResumeParser(this.files[0]);
+        }
+    });
+
+    btnParse.addEventListener('click', function() {
+        if (parserInput.files && parserInput.files.length > 0) {
+            runResumeParser(parserInput.files[0]);
+        } else if (officialResume.files && officialResume.files.length > 0) {
+            runResumeParser(officialResume.files[0]);
+        } else {
+            showAlert('Please select a resume file first (PDF or DOCX).', 'warning');
+        }
+    });
+
+    function showAlert(msg, type) {
+        parseAlert.className = 'alert alert-' + type + ' py-2 px-3 small mt-2 d-flex align-items-center';
+        parseAlert.innerHTML = '<i class="bi bi-info-circle me-2"></i><span>' + msg + '</span>';
+        parseAlert.classList.remove('d-none');
+    }
+
+    function runResumeParser(file) {
+        const formData = new FormData();
+        formData.append('resume', file);
+
+        // UI Loading state
+        parseSpinner.classList.remove('d-none');
+        parseIcon.classList.add('d-none');
+        btnParse.disabled = true;
+        showAlert('Analyzing resume structure & skills taxonomy...', 'info');
+
+        fetch('/api/parse-resume', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Parser server returned status ' + response.status);
+            }
+            return response.json();
+        })
+        .then(res => {
+            if (res.success && res.data) {
+                const data = res.data;
+
+                // Sync official file input if possible
+                try {
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    officialResume.files = dataTransfer.files;
+                } catch(e) {
+                    // Browser may restrict programmatic file assignment, user can re-select if needed
+                }
+
+                // Auto-fill fields
+                if (data.first_name) document.getElementById('first_name').value = data.first_name;
+                if (data.last_name) document.getElementById('last_name').value = data.last_name;
+                if (data.email) document.getElementById('email').value = data.email;
+                if (data.phone) document.getElementById('phone').value = data.phone;
+
+                // Check matching skills
+                let matchedCount = 0;
+                let matchedNames = [];
+                if (data.matched_skills && Array.isArray(data.matched_skills)) {
+                    data.matched_skills.forEach(skill => {
+                        const cb = document.getElementById('skill_' + skill.skill_id);
+                        if (cb) {
+                            cb.checked = true;
+                            matchedCount++;
+                            matchedNames.push(skill.skill_name);
+                        }
+                    });
+                }
+                updateSkillsCount();
+
+                const successMsg = `Successfully extracted candidate: <strong>${data.name || (data.first_name + ' ' + data.last_name)}</strong> &bull; Auto-checked ${matchedCount} matched skills: [${matchedNames.slice(0, 4).join(', ')}${matchedNames.length > 4 ? '...' : ''}]`;
+                showAlert(successMsg, 'success');
+            } else {
+                showAlert('Could not extract details: ' + (res.error || 'Unknown error'), 'danger');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert('Resume parsing failed: ' + err.message, 'danger');
+        })
+        .finally(() => {
+            parseSpinner.classList.add('d-none');
+            parseIcon.classList.remove('d-none');
+            btnParse.disabled = false;
+        });
+    }
+});
+</script>
+{% endblock %}

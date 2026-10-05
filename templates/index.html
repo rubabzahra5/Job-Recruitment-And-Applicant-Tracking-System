@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}Explore Open Careers - Job Recruitment and Applicant Tracking System{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4">
+    <!-- Hero / Advanced Search Header -->
+    <div class="p-4 p-md-5 mb-4 rounded-4 bg-white border shadow-sm">
+        <div class="row align-items-center mb-3">
+            <div class="col-lg-9">
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 rounded-pill mb-2 fw-medium">
+                    <i class="bi bi-stars me-1"></i> Smart Recruitment Marketplace
+                </span>
+                <h1 class="display-6 fw-bold text-dark mb-2">Find Your Next High-Impact Career</h1>
+                <p class="lead text-muted mb-0">
+                    Filter by salary range, location, experience level, or remote-only. Bookmark vacancies for 1-click applications.
+                </p>
+            </div>
+            <div class="col-lg-3 text-end d-none d-lg-block">
+                <i class="bi bi-briefcase text-primary opacity-50" style="font-size: 5rem;"></i>
+            </div>
+        </div>
+
+        <!-- Search & Advanced Filter Form -->
+        <form method="GET" action="{{ url_for('index') }}" class="border rounded-3 p-3 bg-light-subtle" id="searchFilterForm">
+            <!-- Row 1: Primary Search & Top Dropdowns -->
+            <div class="row g-2 mb-2">
+                <div class="col-md-5">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="q" class="form-control border-start-0" placeholder="Job title, company, or keywords..." value="{{ search_query or '' }}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select name="department" class="form-select bg-white">
+                        <option value="">All Departments</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept.department }}" {% if selected_department == dept.department %}selected{% endif %}>
+                                {{ dept.department }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select name="job_type" class="form-select bg-white">
+                        <option value="">All Job Types</option>
+                        <option value="Full-Time" {% if selected_job_type == 'Full-Time' %}selected{% endif %}>Full-Time</option>
+                        <option value="Part-Time" {% if selected_job_type == 'Part-Time' %}selected{% endif %}>Part-Time</option>
+                        <option value="Remote" {% if selected_job_type == 'Remote' %}selected{% endif %}>Remote</option>
+                        <option value="Contract" {% if selected_job_type == 'Contract' %}selected{% endif %}>Contract</option>
+                        <option value="Internship" {% if selected_job_type == 'Internship' %}selected{% endif %}>Internship</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-primary fw-medium">
+                        <i class="bi bi-search me-1"></i> Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 2: Secondary Advanced Filters (Location, Salary Range, Experience, Sort, Remote Toggle) -->
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white"><i class="bi bi-geo-alt"></i></span>
+                        <input type="text" name="location" class="form-control bg-white" placeholder="Location (e.g. San Francisco)" value="{{ selected_location or '' }}">
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <select name="experience_level" class="form-select form-select-sm bg-white">
+                        <option value="">Experience Level (All)</option>
+                        <option value="Entry-level" {% if experience_level == 'Entry-level' %}selected{% endif %}>Entry-level</option>
+                        <option value="Mid-level" {% if experience_level == 'Mid-level' %}selected{% endif %}>Mid-level</option>
+                        <option value="Senior" {% if experience_level == 'Senior' %}selected{% endif %}>Senior</option>
+                        <option value="Lead / Principal" {% if experience_level == 'Lead / Principal' %}selected{% endif %}>Lead / Principal</option>
+                        <option value="Executive" {% if experience_level == 'Executive' %}selected{% endif %}>Executive</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white">$</span>
+                        <input type="number" name="min_salary" class="form-control bg-white" placeholder="Min Salary" value="{{ min_salary or '' }}" min="0" step="5000">
+                        <span class="input-group-text bg-white">to</span>
+                        <input type="number" name="max_salary" class="form-control bg-white" placeholder="Max Salary" value="{{ max_salary or '' }}" min="0" step="5000">
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <select name="sort_by" class="form-select form-select-sm bg-white">
+                        <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Sort: Newest First</option>
+                        <option value="salary_desc" {% if sort_by == 'salary_desc' %}selected{% endif %}>Sort: Salary (High to Low)</option>
+                        <option value="deadline" {% if sort_by == 'deadline' %}selected{% endif %}>Sort: Closing Soon</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2 d-flex align-items-center justify-content-between">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="remoteSwitch" name="remote_only" value="true" {% if remote_only %}checked{% endif %}>
+                        <label class="form-check-label small fw-medium" for="remoteSwitch">Remote Only</label>
+                    </div>
+                    {% if search_query or selected_department or selected_job_type or selected_location or min_salary or max_salary or experience_level or remote_only or (sort_by and sort_by != 'newest') %}
+                        <a href="{{ url_for('index') }}" class="btn btn-sm btn-link text-decoration-none text-muted p-0 ms-2" title="Reset all filters">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Searches History (Feature 6 requirement) -->
+            {% if recent_searches %}
+                <div class="pt-2 mt-2 border-top d-flex align-items-center flex-wrap gap-2">
+                    <span class="small text-muted fw-semibold"><i class="bi bi-clock-history me-1"></i>Recent Searches:</span>
+                    {% for s in recent_searches %}
+                        <a href="{{ url_for('index', q=s.query, department=s.filters.get('department'), location=s.filters.get('location'), remote_only=s.filters.get('remote_only'), experience_level=s.filters.get('experience_level')) }}" 
+                           class="badge bg-white text-secondary border text-decoration-none fw-normal py-1 px-2 hover-shadow">
+                            {% if s.query %}"{{ s.query }}"{% else %}All Roles{% endif %}
+                            {% if s.filters.get('location') %}&bull; {{ s.filters.get('location') }}{% endif %}
+                            {% if s.filters.get('remote_only') %}&bull; Remote{% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Job Cards Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="fw-semibold mb-0">
+            Available Opportunities
+            <span class="badge bg-secondary fs-6 rounded-pill align-middle ms-1">{{ jobs|length }}</span>
+        </h4>
+        <div class="small text-muted">
+            Showing verified vacancies matching criteria
+        </div>
+    </div>
+
+    <!-- Job Cards Grid -->
+    {% if jobs %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 mb-5">
+            {% for job in jobs %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 rounded-3 hover-shadow transition position-relative">
+                        <div class="card-body d-flex flex-column justify-content-between">
+                            <div>
+                                <!-- Top Row: Badges & Bookmark Icon -->
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="badge bg-light text-primary border border-primary-subtle fw-medium">
+                                            {{ job.department }}
+                                        </span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            {{ job.job_type }}
+                                        </span>
+                                        {% if job.experience_level %}
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                                {{ job.experience_level }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- FEATURE 8: Bookmark Toggle Button -->
+                                    {% if current_user.is_authenticated and current_user.is_applicant() %}
+                                        <button class="btn btn-sm btn-link p-0 text-decoration-none bookmark-btn" 
+                                                data-job-id="{{ job.job_id }}" 
+                                                title="Save / Bookmark Job">
+                                            <i class="bi {% if job.job_id in saved_job_ids %}bi-bookmark-heart-fill text-danger fs-5{% else %}bi-bookmark-heart text-secondary fs-5{% endif %}" id="bm-icon-{{ job.job_id }}"></i>
+                                        </button>
+                                    {% else %}
+                                        <a href="{{ url_for('auth_login') }}" class="btn btn-sm btn-link p-0 text-decoration-none text-secondary" title="Sign in to save job">
+                                            <i class="bi bi-bookmark fs-5"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Job Title & Company -->
+                                <h5 class="card-title fw-bold mb-1">
+                                    <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="text-decoration-none text-dark">
+                                        {{ job.job_title }}
+                                    </a>
+                                </h5>
+                                <div class="text-muted small mb-2">
+                                    <i class="bi bi-building me-1"></i> <strong>{{ job.company_name }}</strong>
+                                    &bull; <i class="bi bi-geo-alt me-1"></i> {{ job.job_location }}
+                                </div>
+
+                                <!-- Salary Range -->
+                                {% if job.salary_min and job.salary_max %}
+                                    <div class="text-secondary small fw-medium mb-2">
+                                        <i class="bi bi-cash-stack me-1 text-success"></i> 
+                                        ${{ "{:,.0f}".format(job.salary_min) }} - ${{ "{:,.0f}".format(job.salary_max) }} / yr
+                                    </div>
+                                {% endif %}
+
+                                <!-- Application Deadline -->
+                                {% if job.application_deadline %}
+                                    <div class="small text-muted mb-2">
+                                        <i class="bi bi-calendar-event me-1 text-warning"></i>
+                                        Deadline: {{ job.application_deadline.strftime('%b %d, %Y') if job.application_deadline else 'Open' }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Card Footer: Stats & Actions -->
+                            <div class="pt-3 border-top d-flex justify-content-between align-items-center mt-3">
+                                <span class="small text-muted">
+                                    <i class="bi bi-people me-1"></i> {{ job.applicant_count }} applicant(s)
+                                </span>
+                                <div class="d-flex gap-2">
+                                    <a href="{{ url_for('job_detail', job_id=job.job_id) }}" class="btn btn-outline-primary btn-sm">
+                                        Details
+                                    </a>
+                                    <a href="{{ url_for('apply', job_id=job.job_id) }}" class="btn btn-primary btn-sm">
+                                        Apply Now
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card p-5 text-center bg-white border-0 shadow-sm rounded-4 mb-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 3.5rem;"></i>
+            <h5 class="mt-3 text-secondary">No open positions match your search criteria</h5>
+            <p class="text-muted small">Try broadening your salary range, clearing the remote filter, or resetting keywords.</p>
+            <div>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-primary btn-sm">Reset Search Filters</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Feature 8: AJAX Bookmark Toggle
+    document.querySelectorAll('.bookmark-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const jobId = this.getAttribute('data-job-id');
+            const icon = document.getElementById('bm-icon-' + jobId);
+            
+            fetch('/jobs/' + jobId + '/bookmark', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'saved') {
+                    icon.className = 'bi bi-bookmark-heart-fill text-danger fs-5';
+                } else if (data.status === 'removed') {
+                    icon.className = 'bi bi-bookmark-heart text-secondary fs-5';
+                }
+            })
+            .catch(err => {
+                console.error('Bookmark toggle error:', err);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

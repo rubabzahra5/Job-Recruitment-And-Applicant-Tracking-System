@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Email Audit Logs - ATS{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4" style="max-width: 1040px;">
+    <!-- Header -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-envelope-paper-fill text-primary"></i> Notification Audit Trail
+                </h3>
+                <p class="text-muted small mb-0">
+                    Live log of all transactional email events dispatched across applications, interviews, status updates, and recruiter team invitations.
+                </p>
+            </div>
+            <span class="badge bg-secondary rounded-pill fs-6">{{ logs|length }} Logs Recorded</span>
+        </div>
+    </div>
+
+    <!-- Logs Table -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        {% if logs %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle small mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#ID</th>
+                            <th>Recipient</th>
+                            <th>Subject</th>
+                            <th>Notification Type</th>
+                            <th>Status</th>
+                            <th>Timestamp</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                            <tr>
+                                <td><code>#{{ log.log_id }}</code></td>
+                                <td class="fw-semibold">{{ log.recipient_email }}</td>
+                                <td>{{ log.subject }}</td>
+                                <td>
+                                    <span class="badge bg-light text-primary border border-primary-subtle">
+                                        {{ log.email_type }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if log.status == 'sent' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Sent
+                                        </span>
+                                    {% elif log.status == 'mock_logged' %}
+                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                                            <i class="bi bi-file-earmark-text me-1"></i> Mock Logged
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                            {{ log.status }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-muted">{{ log.sent_at.strftime('%b %d, %Y %I:%M %p') if log.sent_at else '' }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm py-0" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#bodyModal{{ log.log_id }}">
+                                        Preview Body
+                                    </button>
+
+                                    <!-- Body Preview Modal -->
+                                    <div class="modal fade" id="bodyModal{{ log.log_id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content border-0 shadow rounded-4">
+                                                <div class="modal-header border-bottom">
+                                                    <h6 class="modal-title fw-bold">{{ log.subject }}</h6>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body p-4">
+                                                    <div class="small text-muted mb-3">
+                                                        <strong>To:</strong> {{ log.recipient_email }} &bull; 
+                                                        <strong>Type:</strong> {{ log.email_type }} &bull; 
+                                                        <strong>Dispatched:</strong> {{ log.sent_at }}
+                                                    </div>
+                                                    <pre class="bg-light p-3 rounded-3 border small" style="white-space: pre-wrap; font-family: monospace;">{{ log.body }}</pre>
+                                                </div>
+                                                <div class="modal-footer border-top py-2">
+                                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="p-5 text-center text-muted small">
+                <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
+                No email dispatch logs recorded yet. Submit an application or update a candidate status to generate notifications.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+
+{% block title %}Recruiter Intelligence Dashboard - ATS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Top Header & Filter Controls -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-white p-3 p-md-4 rounded-4 shadow-sm border">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h3 class="fw-bold mb-0 text-dark">Recruiter Dashboard</h3>
+                {% if subscription %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6">
+                        {{ subscription.plan_name }} Plan
+                    </span>
+                {% endif %}
+            </div>
+            <div class="text-muted small">
+                {% if current_user.company_name %}
+                    <strong>{{ current_user.company_name }}</strong> &bull; 
+                {% endif %}
+                Recruitment Intelligence, Talent Pipeline Funnel & Candidate Management
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <!-- Job Opening Filter Form -->
+            <form method="GET" action="{{ url_for('recruiter_dashboard') }}" class="d-flex align-items-center gap-2">
+                <select name="job_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Job Vacancies</option>
+                    {% for j in all_jobs %}
+                        <option value="{{ j.job_id }}" {% if selected_job_id == j.job_id|string %}selected{% endif %}>
+                            {{ j.title }} ({{ j.applicant_count }} apps)
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if selected_job_id %}
+                    <a href="{{ url_for('recruiter_dashboard') }}" class="btn btn-sm btn-outline-secondary" title="Clear Job Filter">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                {% endif %}
+            </form>
+
+            <a href="{{ url_for('recruiter_analytics') }}" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-graph-up me-1"></i> Hiring Analytics
+            </a>
+            <a href="{{ url_for('post_job') }}" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> Post New Job
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 Top KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Total Applicants</div>
+                        <div class="display-6 fw-bold text-dark mt-1">{{ kpi.total_applicants }}</div>
+                        <div class="small text-muted mt-1"><i class="bi bi-people me-1"></i>Cumulative active candidates</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-primary-subtle text-primary">
+                        <i class="bi bi-person-lines-fill fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Applications This Week</div>
+                        <div class="display-6 fw-bold text-primary mt-1">{{ kpi.apps_this_week }}</div>
+                        <div class="small text-success mt-1"><i class="bi bi-arrow-up-right me-1"></i>Last 7 days volume</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-info-subtle text-info">
+                        <i class="bi bi-inbox-fill fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Upcoming Interviews</div>
+                        <div class="display-6 fw-bold text-warning-emphasis mt-1">{{ kpi.upcoming_interviews }}</div>
+                        <div class="small text-muted mt-1"><i class="bi bi-clock me-1"></i>Scheduled rounds</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-warning-subtle text-warning">
+                        <i class="bi bi-calendar-check-fill fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                <div class="card-body d-flex align-items-center justify-content-between p-3 p-md-4">
+                    <div>
+                        <div class="text-muted small fw-medium text-uppercase">Hired This Month</div>
+                        <div class="display-6 fw-bold text-success mt-1">{{ kpi.hired_this_month }}</div>
+                        <div class="small text-success mt-1"><i class="bi bi-check-circle me-1"></i>Offers accepted</div>
+                    </div>
+                    <div class="rounded-circle p-3 bg-success-subtle text-success">
+                        <i class="bi bi-trophy-fill fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs: Dashboard & Charts vs Full Kanban Board -->
+    <ul class="nav nav-pills mb-4 gap-2 bg-white p-2 rounded-4 shadow-sm border" id="recruiterTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active px-4 fw-medium" id="overview-tab" data-bs-toggle="pill" data-bs-target="#overview-pane" type="button" role="tab">
+                <i class="bi bi-speedometer2 me-1"></i> Overview & Visualizations
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-4 fw-medium" id="kanban-tab" data-bs-toggle="pill" data-bs-target="#kanban-pane" type="button" role="tab">
+                <i class="bi bi-kanban me-1"></i> Interactive Kanban Pipeline ({{ total_candidates }})
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="recruiterTabContent">
+        <!-- PANE 1: Overview & Charts & Tables -->
+        <div class="tab-pane fade show active" id="overview-pane" role="tabpanel">
+            <!-- 2 Chart.js Visualizations (Applications over time & Pipeline Funnel) -->
+            <div class="row g-4 mb-4">
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-3 p-md-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-graph-up text-primary me-2"></i>Applications Over Time (Last 30 Days)
+                            </h5>
+                            <span class="badge bg-light text-muted border">Daily Trend</span>
+                        </div>
+                        <div style="position: relative; height: 280px; width: 100%;">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card border-0 shadow-sm rounded-4 bg-white h-100 p-3 p-md-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-funnel text-success me-2"></i>Pipeline Funnel Breakdown
+                            </h5>
+                            <span class="badge bg-light text-muted border">Stage Volume</span>
+                        </div>
+                        <div style="position: relative; height: 280px; width: 100%;">
+                            <canvas id="funnelChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2 Data Tables: Recent Applications & Today's Interviews -->
+            <div class="row g-4 mb-5">
+                <!-- Table 1: Recent Applications (Last 10) -->
+                <div class="col-lg-7">
+                    <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-file-earmark-person me-2 text-primary"></i>Recent Applications (Last 10)
+                            </h5>
+                            <span class="badge bg-secondary-subtle text-secondary">{{ recent_applications|length }} entries</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Applicant</th>
+                                        <th>Target Role</th>
+                                        <th>Stage</th>
+                                        <th>Applied</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if recent_applications %}
+                                        {% for app in recent_applications %}
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-bold text-dark">{{ app.candidate_name }}</div>
+                                                    <div class="small text-muted">{{ app.candidate_email }}</div>
+                                                </td>
+                                                <td>
+                                                    <span class="small fw-medium text-secondary">{{ app.job_title }}</span>
+                                                </td>
+                                                <td>
+                                                    {% if app.status == 'Applied' %}
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Applied</span>
+                                                    {% elif app.status == 'Screening' %}
+                                                        <span class="badge bg-info-subtle text-info border border-info-subtle">Screening</span>
+                                                    {% elif app.status == 'Interview' %}
+                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Interview</span>
+                                                    {% elif app.status == 'Hired' %}
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle">Hired</span>
+                                                    {% elif app.status == 'Rejected' %}
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Rejected</span>
+                                                    {% elif app.status == 'Withdrawn' %}
+                                                        <span class="badge bg-secondary text-white">Withdrawn</span>
+                                                    {% else %}
+                                                        <span class="badge bg-light text-dark">{{ app.status }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="small text-muted">
+                                                    {{ app.applied_at.strftime('%b %d, %H:%M') if app.applied_at else '-' }}
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="{{ url_for('update_status', application_id=app.application_id) }}" class="btn btn-sm btn-outline-primary py-0 px-2" title="Manage Applicant & Notes">
+                                                        <i class="bi bi-pencil-square"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center py-4 text-muted small">No applications received yet.</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table 2: Today's Interviews -->
+                <div class="col-lg-5">
+                    <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-calendar-event me-2 text-warning"></i>Today's Interviews
+                            </h5>
+                            <span class="badge bg-warning-subtle text-warning-emphasis">{{ today_interviews|length }} scheduled</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Candidate</th>
+                                        <th>Round</th>
+                                        <th class="text-end">Link</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if today_interviews %}
+                                        {% for iv in today_interviews %}
+                                            <tr>
+                                                <td class="small fw-bold text-primary">
+                                                    {{ iv.scheduled_at.strftime('%I:%M %p') if iv.scheduled_at else 'TBD' }}
+                                                </td>
+                                                <td>
+                                                    <div class="fw-bold small text-dark">{{ iv.candidate_name }}</div>
+                                                    <div class="small text-muted" style="font-size: 0.75rem;">{{ iv.job_title }}</div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-light text-dark border">{{ iv.interview_type or 'General' }}</span>
+                                                </td>
+                                                <td class="text-end">
+                                                    {% if iv.location_or_link %}
+                                                        <a href="{{ iv.location_or_link }}" target="_blank" class="btn btn-sm btn-outline-success py-0 px-2" title="Join Video Call">
+                                                            <i class="bi bi-camera-video"></i>
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-muted small">-</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="4" class="text-center py-4 text-muted small">
+                                                <i class="bi bi-calendar-check fs-3 d-block mb-1 text-muted opacity-50"></i>
+                                                No interviews scheduled for today.
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANE 2: Kanban Pipeline (All 6 Stages including Withdrawn) -->
+        <div class="tab-pane fade" id="kanban-pane" role="tabpanel">
+            <div class="kanban-board">
+                {% set stages = [
+                    ('Applied', 'applied', 'bi-inbox-fill', kanban['Applied']),
+                    ('Screening', 'screening', 'bi-binoculars-fill', kanban['Screening']),
+                    ('Interview', 'interview', 'bi-calendar-event-fill', kanban['Interview']),
+                    ('Hired', 'hired', 'bi-check-circle-fill', kanban['Hired']),
+                    ('Rejected', 'rejected', 'bi-x-circle-fill', kanban['Rejected']),
+                    ('Withdrawn', 'withdrawn', 'bi-arrow-counterclockwise', kanban['Withdrawn'])
+                ] %}
+
+                {% for stage_name, stage_key, stage_icon, candidates in stages %}
+                    <div class="kanban-column kanban-column-{{ stage_key }}">
+                        <div class="kanban-header d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi {{ stage_icon }} me-1"></i> {{ stage_name }}
+                            </span>
+                            <span class="badge bg-white text-dark shadow-xs rounded-pill">
+                                {{ candidates|length }}
+                            </span>
+                        </div>
+                        
+                        <div class="kanban-body">
+                            {% if candidates %}
+                                {% for cand in candidates %}
+                                    <div class="kanban-card" id="cand-card-{{ cand.application_id }}">
+                                        <div class="d-flex justify-content-between align-items-start mb-1">
+                                            <span class="badge bg-light text-secondary border small">#APP-{{ cand.application_id }}</span>
+                                            <small class="text-muted">
+                                                {{ cand.applied_at.strftime('%b %d') if cand.applied_at else '' }}
+                                            </small>
+                                        </div>
+
+                                        <div class="candidate-name text-dark fw-bold">
+                                            {{ cand.candidate_name }}
+                                        </div>
+                                        <div class="candidate-meta mb-2 small text-muted">
+                                            <i class="bi bi-briefcase me-1"></i> <strong>{{ cand.job_title }}</strong><br>
+                                            <i class="bi bi-envelope me-1"></i> {{ cand.candidate_email }}
+                                        </div>
+
+                                        <!-- Skills Badges -->
+                                        {% if cand.candidate_skills and cand.candidate_skills != 'None Recorded' %}
+                                            <div class="mb-2">
+                                                {% for skill in cand.candidate_skills.split(',')[:3] %}
+                                                    <span class="skill-tag badge bg-light text-primary border me-1">{{ skill.strip() }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+
+                                        <!-- Interview Metrics Badge if present -->
+                                        {% if cand.total_interviews > 0 %}
+                                            <div class="small mb-2 p-1 bg-light rounded border d-flex justify-content-between align-items-center">
+                                                <span><i class="bi bi-chat-quote me-1"></i> {{ cand.total_interviews }} Round(s)</span>
+                                                {% if cand.avg_interview_rating %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="bi bi-star-fill text-warning-emphasis"></i> {{ cand.avg_interview_rating }}/5
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+
+                                        <!-- Actions & Stage Transitions -->
+                                        <div class="pt-2 border-top d-flex justify-content-between align-items-center gap-1">
+                                            {% if stage_name != 'Withdrawn' %}
+                                                <div class="dropdown flex-grow-1">
+                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100 py-1" style="font-size: 0.75rem;" type="button" data-bs-toggle="dropdown">
+                                                        Move Stage
+                                                    </button>
+                                                    <ul class="dropdown-menu shadow">
+                                                        <li><h6 class="dropdown-header small">Change Stage</h6></li>
+                                                        {% for target_stage in ['Applied', 'Screening', 'Interview', 'Hired', 'Rejected'] %}
+                                                            {% if target_stage != stage_name %}
+                                                                <li>
+                                                                    <button class="dropdown-item small" onclick="updateCandidateStage({{ cand.application_id }}, '{{ target_stage }}')">
+                                                                        &rarr; {{ target_stage }}
+                                                                    </button>
+                                                                </li>
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            {% else %}
+                                                <span class="small text-muted fst-italic">Withdrawn</span>
+                                            {% endif %}
+
+                                            <a href="{{ url_for('update_status', application_id=cand.application_id) }}" class="btn btn-sm btn-outline-primary py-1 px-2" title="Manage Notes & Interviews">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+
+                                            {% if cand.resume_filename %}
+                                                <a href="{{ url_for('download_resume', filename=cand.resume_filename) }}" target="_blank" class="btn btn-sm btn-outline-dark py-1 px-2" title="Download Resume">
+                                                    <i class="bi bi-file-earmark-pdf"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-4 text-muted small">
+                                    <i class="bi bi-dash-circle fs-4 d-block mb-1 opacity-50"></i>
+                                    No candidates in this stage
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart 1: Applications Over Time Line Chart
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    const timelineLabels = {{ chart_timeline_labels|safe }};
+    const timelineData = {{ chart_timeline_data|safe }};
+
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: timelineLabels,
+            datasets: [{
+                label: 'Applications',
+                data: timelineData,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                tension: 0.35,
+                fill: true,
+                pointBackgroundColor: '#0d6efd',
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+
+    // Chart 2: Pipeline Funnel Bar Chart
+    const funnelCtx = document.getElementById('funnelChart').getContext('2d');
+    const funnelLabels = {{ chart_funnel_labels|safe }};
+    const funnelData = {{ chart_funnel_data|safe }};
+
+    const funnelColors = [
+        '#0d6efd', // Applied
+        '#0dcaf0', // Screening
+        '#ffc107', // Interview
+        '#198754', // Hired
+        '#dc3545', // Rejected
+        '#6c757d'  // Withdrawn
+    ];
+
+    new Chart(funnelCtx, {
+        type: 'bar',
+        data: {
+            labels: funnelLabels,
+            datasets: [{
+                label: 'Candidates',
+                data: funnelData,
+                backgroundColor: funnelColors.slice(0, funnelLabels.length),
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
+            }
+        }
+    });
+});
+
+function updateCandidateStage(applicationId, newStatus) {
+    if (!confirm(`Move application #${applicationId} to stage "${newStatus}"?`)) return;
+
+    fetch("{{ url_for('api_update_status') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            application_id: applicationId,
+            status: newStatus
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert("Error updating status: " + (data.error || data.message));
+        }
+    })
+    .catch(err => {
+        alert("Server communication error: " + err);
+    });
+}
+</script>
+{% endblock %}

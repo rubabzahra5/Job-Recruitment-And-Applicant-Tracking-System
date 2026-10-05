@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block title %}DBMS SQL Analytics & Views Showcase - ATS{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4">
+    <!-- Showcase Header -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <h3 class="fw-bold mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-database-check text-primary"></i> DBMS SQL Features & Query Showcase
+                </h3>
+                <p class="text-muted small mb-0">
+                    Live execution of 10 complex queries, 2 analytical Views, Triggers, and Stored Procedures directly against PostgreSQL.
+                </p>
+            </div>
+            <div class="d-flex gap-2">
+                <form action="{{ url_for('admin_reset_db') }}" method="POST" onsubmit="return confirm('Reset and re-seed all tables?');">
+                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-arrow-repeat me-1"></i> Reset & Re-Seed Database
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs for Views vs Queries -->
+    <ul class="nav nav-pills mb-4 bg-white p-2 rounded-4 shadow-sm border" id="analyticsTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active fw-semibold" id="queries-tab" data-bs-toggle="tab" data-bs-target="#queries-pane" type="button" role="tab">
+                <i class="bi bi-code-slash me-1"></i> 10 Advanced SQL Demonstration Queries
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="views-tab" data-bs-toggle="tab" data-bs-target="#views-pane" type="button" role="tab">
+                <i class="bi bi-table me-1"></i> PostgreSQL Views (v_job_applications_summary, v_applicant_pipeline_overview)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link fw-semibold" id="triggers-tab" data-bs-toggle="tab" data-bs-target="#triggers-pane" type="button" role="tab">
+                <i class="bi bi-lightning-charge me-1"></i> Triggers & Stored Procedures Architecture
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="analyticsTabContent">
+        <!-- PANE 1: 10 Advanced SQL Demonstration Queries -->
+        <div class="tab-pane fade show active" id="queries-pane" role="tabpanel">
+            <div class="accordion" id="accordionQueries">
+                {% for q in query_results %}
+                    <div class="accordion-item border rounded-3 mb-3 shadow-xs">
+                        <h2 class="accordion-header" id="heading{{ q.id }}">
+                            <button class="accordion-button {% if q.id != 1 %}collapsed{% endif %} py-3" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ q.id }}">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center w-100 me-3 gap-2">
+                                    <div>
+                                        <span class="badge bg-primary me-2">Q{{ q.id }}</span>
+                                        <strong class="text-dark">{{ q.title }}</strong>
+                                        <span class="badge bg-light text-secondary border ms-2 small">{{ q.concept }}</span>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle me-2">
+                                            <i class="bi bi-stopwatch me-1"></i>{{ q.duration_ms }} ms
+                                        </span>
+                                        <span class="badge bg-secondary-subtle text-secondary border">
+                                            {{ q.row_count }} row(s)
+                                        </span>
+                                    </div>
+                                </div>
+                            </button>
+                        </h2>
+                        <div id="collapse{{ q.id }}" class="accordion-collapse collapse {% if q.id == 1 %}show{% endif %}" data-bs-parent="#accordionQueries">
+                            <div class="accordion-body bg-light">
+                                <p class="text-muted small mb-2"><strong>Purpose:</strong> {{ q.description }}</p>
+
+                                <!-- Raw SQL Query Box -->
+                                <div class="mb-3">
+                                    <div class="small fw-semibold text-secondary mb-1">Executed SQL:</div>
+                                    <pre class="sql-code-box mb-0"><code>{{ q.sql.strip() }}</code></pre>
+                                </div>
+
+                                <!-- Execution Output Table -->
+                                <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
+                                    <div class="card-header bg-white py-2 small fw-bold text-dark">
+                                        <i class="bi bi-terminal me-1 text-primary"></i> Query Results ({{ q.row_count }} rows)
+                                    </div>
+                                    <div class="table-responsive" style="max-height: 320px;">
+                                        {% if q.rows %}
+                                            <table class="table table-sm table-striped table-hover mb-0 align-middle small">
+                                                <thead class="table-dark sticky-top">
+                                                    <tr>
+                                                        {% for header in q.headers %}
+                                                            <th scope="col">{{ header }}</th>
+                                                        {% endfor %}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for row in q.rows %}
+                                                        <tr>
+                                                            {% for header in q.headers %}
+                                                                <td>{{ row[header] }}</td>
+                                                            {% endfor %}
+                                                        </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        {% else %}
+                                            <div class="p-3 text-muted small text-center">No rows returned.</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- PANE 2: PostgreSQL Views -->
+        <div class="tab-pane fade" id="views-pane" role="tabpanel">
+            <!-- View 1: v_job_applications_summary -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1">
+                            <i class="bi bi-eye text-primary me-2"></i>View 1: <code>v_job_applications_summary</code>
+                        </h5>
+                        <p class="text-muted small mb-0">
+                            Pre-aggregates job posting metrics, stage conversion counts, and average candidate interview ratings.
+                        </p>
+                    </div>
+                    <span class="badge bg-primary">{{ view1_rows|length }} Jobs</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover align-middle small">
+                        <thead class="table-dark">
+                            <tr>
+                                {% for header in view1_headers %}
+                                    <th>{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in view1_rows %}
+                                <tr>
+                                    {% for header in view1_headers %}
+                                        <td>{{ row[header] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- View 2: v_applicant_pipeline_overview -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1">
+                            <i class="bi bi-eye text-primary me-2"></i>View 2: <code>v_applicant_pipeline_overview</code>
+                        </h5>
+                        <p class="text-muted small mb-0">
+                            Multi-table relational view linking candidates, target jobs, company names, string-aggregated skills, and interview metrics.
+                        </p>
+                    </div>
+                    <span class="badge bg-primary">{{ view2_rows|length }} Records Previewed</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover align-middle small">
+                        <thead class="table-dark">
+                            <tr>
+                                {% for header in view2_headers %}
+                                    <th>{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in view2_rows %}
+                                <tr>
+                                    {% for header in view2_headers %}
+                                        <td>{{ row[header] }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANE 3: Triggers & Stored Procedures -->
+        <div class="tab-pane fade" id="triggers-pane" role="tabpanel">
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                        <h5 class="fw-bold mb-3 text-primary">
+                            <i class="bi bi-lightning-charge me-1"></i> Implemented Database Triggers
+                        </h5>
+
+                        <div class="mb-3 border-bottom pb-2">
+                            <h6 class="fw-bold text-dark">1. <code>trg_applications_update_timestamp</code></h6>
+                            <p class="small text-muted mb-1">
+                                <strong>Event:</strong> <code>BEFORE UPDATE ON applications</code> & <code>jobs</code>
+                            </p>
+                            <p class="small text-secondary mb-0">
+                                Executes PL/pgSQL function <code>fn_update_timestamp()</code>. Ensures database-level temporal tracking whenever application or job status changes.
+                            </p>
+                        </div>
+
+                        <div class="mb-3 border-bottom pb-2">
+                            <h6 class="fw-bold text-dark">2. <code>trg_interviews_auto_advance_status</code></h6>
+                            <p class="small text-muted mb-1">
+                                <strong>Event:</strong> <code>AFTER INSERT ON interviews</code>
+                            </p>
+                            <p class="small text-secondary mb-0">
+                                Executes <code>fn_advance_application_on_interview()</code>. When an interview round is scheduled with status <code>'Scheduled'</code>, automatically promotes the candidate application stage from <code>Applied</code> or <code>Screening</code> to <code>Interview</code>.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-bold text-dark">3. <code>trg_validate_job_application</code> (Bonus Constraint)</h6>
+                            <p class="small text-muted mb-1">
+                                <strong>Event:</strong> <code>BEFORE INSERT ON applications</code>
+                            </p>
+                            <p class="small text-secondary mb-0">
+                                Executes <code>fn_validate_application_submission()</code>. Raises an exception if candidate attempts to apply to a closed or archived job.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white h-100">
+                        <h5 class="fw-bold mb-3 text-success">
+                            <i class="bi bi-gear-wide-connected me-1"></i> Stored Procedures & Functions
+                        </h5>
+
+                        <div class="mb-3 border-bottom pb-2">
+                            <h6 class="fw-bold text-dark">1. <code>fn_get_applicants_for_job(p_job_id, p_status)</code></h6>
+                            <p class="small text-muted mb-1">
+                                <strong>Type:</strong> PL/pgSQL Table Function
+                            </p>
+                            <p class="small text-secondary mb-0">
+                                Returns structured relational candidate records for a specific job, with skills aggregated and interview ratings computed.
+                            </p>
+                        </div>
+
+                        <div>
+                            <h6 class="fw-bold text-dark">2. <code>sp_schedule_interview(...)</code></h6>
+                            <p class="small text-muted mb-1">
+                                <strong>Type:</strong> Transactional Stored Procedure
+                            </p>
+                            <p class="small text-secondary mb-0">
+                                Accepts <code>p_application_id, p_interviewer_id, p_interview_type, p_scheduled_at, p_duration_minutes</code>. Verifies interviewer role, writes interview record, and updates the application within an ACID transaction.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

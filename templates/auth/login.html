@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - Job Recruitment and Applicant Tracking System{% endblock %}
+
+{% block content %}
+<div class="container px-lg-4" style="max-width: 520px;">
+    <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 bg-white mt-3">
+        <div class="text-center mb-4">
+            <div class="d-inline-flex align-items-center justify-content-center bg-primary-subtle text-primary rounded-circle mb-3" style="width: 60px; height: 60px;">
+                <i class="bi bi-shield-lock-fill fs-3"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Welcome Back</h3>
+            <p class="text-muted small">Sign in to your recruiter, applicant, or administrator account.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth_login', next=request.args.get('next')) }}">
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Username or Email Address</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                    <input type="text" name="login_input" id="login_input" class="form-control" required placeholder="alex_talent or candidate@gmail.com">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold small">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                    <input type="password" name="password" id="password" class="form-control" required placeholder="••••••••">
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="remember" id="remember" checked>
+                    <label class="form-check-label small" for="remember">Remember me</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">
+                <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+            </button>
+        </form>
+
+        <!-- Demo Accounts Quick Fill (Ideal for Evaluation) -->
+        <div class="border-top pt-3 mt-2">
+            <div class="small fw-bold text-secondary mb-2 text-center">
+                <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Quick-Fill Demo Credentials
+            </div>
+            <div class="d-grid gap-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="fillCreds('alex_talent', 'password123')">
+                    <span class="badge bg-primary me-1">Recruiter</span> <strong>Stripe:</strong> alex_talent
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="fillCreds('elena_hr', 'password123')">
+                    <span class="badge bg-info me-1">Recruiter</span> <strong>Datadog:</strong> elena_hr
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="fillCreds('david.kim@gmail.com', 'password123')">
+                    <span class="badge bg-success me-1">Applicant</span> <strong>Candidate:</strong> david.kim@gmail.com
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm text-start" onclick="fillCreds('admin_system', 'password123')">
+                    <span class="badge bg-dark me-1">Admin</span> <strong>System Admin:</strong> admin_system
+                </button>
+            </div>
+        </div>
+
+        <div class="text-center small text-muted mt-4 border-top pt-3">
+            Don't have an account? 
+            <a href="{{ url_for('auth_register') }}" class="text-decoration-none fw-semibold">Applicant Signup</a> &bull;
+            <a href="{{ url_for('company_register') }}" class="text-decoration-none fw-semibold">Employer Signup</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fillCreds(login, pass) {
+    document.getElementById('login_input').value = login;
+    document.getElementById('password').value = pass;
+}
+</script>
+{% endblock %}
