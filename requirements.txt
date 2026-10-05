@@ -7,3 +7,5 @@ Flask-Mail>=0.10.0
 stripe>=8.0.0
 pypdf>=4.0.0
 reportlab>=4.0.0
+gunicorn>=21.2.0
+streamlit>=1.30.0

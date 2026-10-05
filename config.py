@@ -13,11 +13,23 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'ats-university-dbms-secret-key-2026')
     
     # PostgreSQL Database Connection Parameters
-    DB_HOST = os.environ.get('DB_HOST', 'localhost')
-    DB_PORT = int(os.environ.get('DB_PORT', 5432))
-    DB_NAME = os.environ.get('DB_NAME', 'ats_db')
-    DB_USER = os.environ.get('DB_USER', 'postgres')
-    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'adeela@875')
+    _db_url = os.environ.get('DATABASE_URL')
+    if _db_url:
+        import urllib.parse as _up
+        if _db_url.startswith("postgres://"):
+            _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+        _parsed = _up.urlparse(_db_url)
+        DB_HOST = _parsed.hostname or 'localhost'
+        DB_PORT = _parsed.port or 5432
+        DB_NAME = _parsed.path.lstrip('/') or 'ats_db'
+        DB_USER = _parsed.username or 'postgres'
+        DB_PASSWORD = _parsed.password or ''
+    else:
+        DB_HOST = os.environ.get('DB_HOST', 'localhost')
+        DB_PORT = int(os.environ.get('DB_PORT', 5432))
+        DB_NAME = os.environ.get('DB_NAME', 'ats_db')
+        DB_USER = os.environ.get('DB_USER', 'postgres')
+        DB_PASSWORD = os.environ.get('DB_PASSWORD', 'adeela@875')
     
     # File Upload Settings (Resume and Logo storage)
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads', 'resumes')

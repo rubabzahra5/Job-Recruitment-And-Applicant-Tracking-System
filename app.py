@@ -2039,9 +2039,12 @@ def download_resume(filename):
 
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() in ['true', '1']
     try:
         db.ensure_database_exists()
     except Exception as exc:
         print(f"PostgreSQL connection notice: {exc}")
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # use_reloader=False avoids ValueError: signal only works in main thread
+    app.run(host='0.0.0.0', port=port, debug=debug_mode, use_reloader=False)
