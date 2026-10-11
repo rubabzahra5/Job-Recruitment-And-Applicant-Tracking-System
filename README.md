@@ -1,144 +1,205 @@
-# Job Recruitment and Applicant Tracking System (ATS)
+# Job Recruitment And Applicant Tracking System
 
-**Job Recruitment and Applicant Tracking System (ATS)** is a complete, multi-tenant B2B **Applicant Tracking System (ATS)** and recruitment software platform built with **Python (Flask)**, **PostgreSQL** (via `psycopg2`), and **HTML5 + Bootstrap 5**.
+Job recruitment + applicant tracking system (ATS) for Pakistan.
 
-It combines a 3NF normalized relational DBMS engine (views, triggers, stored procedures, indexes) with commercial SaaS features: **Role-Based Authentication (RBAC)**, **Company Workspaces & Recruiter Team Seats**, **Automated Email Notifications with DB Audits**, **Stripe 3-Tier Subscriptions with Quota Gating**, and **Custom Brand Identity with Multi-Tenant Career Portals**.
+**Brand note:** "Job Recruitment And Applicant Tracking System" is a *temporary, configurable* product name. The
+platform brand is a runtime setting (`platform_settings.platform_name`,
+editable in the control center under Settings) and should be renamed before
+any public launch.
 
----
+**What this is:** a complete web application — public job board, candidate
+portal, employer/HR portal, and super-admin control center — built on Next.js
+15 (App Router) + Supabase (PostgreSQL, Auth, Storage), all on free-tier
+services. Primary market: Pakistan. Currency: PKR. Language: English (the
+architecture leaves room for Urdu/RTL later). Default display timezone:
+`Asia/Karachi`; timestamps are stored in UTC.
 
-## 1. Tech Stack
+**Two operating modes** (configurable via `platform_settings.operating_mode`,
+no rebuild needed):
+- **Mode A — centralized:** a public recruitment portal run by the platform
+  owner; organizations register and await verification.
+- **Mode B — internal:** a single organization using the platform privately as
+  its internal recruitment system.
 
-- **Backend:** Python 3 + Flask 3.1
-- **Database:** PostgreSQL 18 with `psycopg2` driver (`RealDictCursor`)
-- **Authentication:** `Flask-Login` + secure password hashing with `Werkzeug`
-- **Email Notifications:** `Flask-Mail` with dual-mode delivery (SMTP or graceful DB logging fallback)
-- **Payments & Subscriptions:** `stripe` Python SDK (Checkout Sessions, feature gating, 3-tier limits)
-- **Frontend:** HTML5 + Bootstrap 5.3 CDN + Bootstrap Icons (Responsive, modern, clean)
-- **Document & Asset Storage:** Resumes (`static/uploads/resumes/`) and Company Logos (`static/uploads/logos/`)
+## Stack (pinned, verified Oct 2026)
 
----
+Exact versions confirmed present in `node_modules` (no range drift —
+`package.json` pins every version):
 
-## 2. Commercial SaaS Features Added
+| Package            | Version  |
+| ------------------ | -------- |
+| next / eslint-config-next | 15.5.27 |
+| react / react-dom  | 19.3.0   |
+| typescript         | 5.9.3    |
+| tailwindcss / @tailwindcss/postcss | 4.3.3 |
+| @supabase/ssr      | 0.12.7   |
+| @supabase/supabase-js | 2.117.3 |
+| zod                | 4.6.5    |
+| react-hook-form    | 7.89.0   |
+| @hookform/resolvers| 5.9.1    |
+| vitest             | 5.0.3    |
+| @testing-library/react | 16.3.3 |
+| jsdom              | 30.1.2   |
+| playwright / @playwright/test | 1.64.0 |
+| eslint / @eslint/eslintrc | 9.39.5 / 3.3.7 |
+| tsx                | 4.23.15  |
+| server-only        | 0.0.1    |
 
-### 1. Authentication & Role-Based Access Control (RBAC)
-- Unified login (`/auth/login`) supporting Admins, Recruiters, and Applicants.
-- Applicant self-registration (`/auth/register`) creating accounts and candidate profiles.
-- Route guards using `@role_required(['recruiter', 'admin'])`, `@role_required('applicant')`, `@login_required`.
-- Quick-fill demo buttons on the login screen for testing all 3 user roles with 1 click.
+`next@15.5.27` is the latest 15.x Maintenance LTS (Sept 30 2026 security
+release). `engines.node >= 20.9.0`.
 
-### 2. Multi-Tenant Company Registration & Recruiter Team Management
-- Company registration (`/company/register`):
-  - Company profile, website, industry, headquarters, description.
-  - Logo image upload (`.png`, `.jpg`, `.svg`, `.webp`).
-  - Primary brand color picker (`brand_color`) and header text contrast picker.
-  - Auto-provisions the primary Recruiter Admin account and activates the **Free** subscription tier.
-- Team Management (`/company/team`):
-  - View all team recruiters and seat allocation.
-  - Generates secure tokenized invitations (`recruiter_invitations` table) and dispatches onboarding emails.
-  - Enforces `recruiter_limit` quota based on subscription plan.
-  - Invited recruiter acceptance flow (`/invite/accept/<token>`).
+## Prerequisites
 
-### 3. Transactional Email Notifications & Audit Logging
-- Integrated via `mailer.py` and persisted in PostgreSQL `email_logs`.
-- Dual-mode delivery:
-  - Connects to SMTP if configured in `.env`.
-  - Automatically falls back to mock logging if SMTP credentials are dummy/offline, ensuring applications and workflows never crash.
-- Automated triggers:
-  1. **Application Confirmation:** Dispatched on submission with Application ID and tracking link.
-  2. **Stage Progression Notice:** Dispatched when a candidate is moved to `Screening`, `Interview`, `Hired`, or `Rejected`.
-  3. **Interview Schedule Invitation:** Dispatched when an interview is scheduled via `sp_schedule_interview`.
-  4. **Recruiter Team Invitation:** Dispatched when a recruiter invites a colleague.
-- Audit table viewer (`/admin/email-logs`) for reviewing outbound communication.
+- Node.js ≥ 20.9
+- A Supabase project (PostgreSQL + Auth + Storage) — free tier works for
+  development. See `docs/free-tier-limits.md` for the current quotas.
+- PostgreSQL 14–16 binaries locally (optional; only needed for
+  `npm run db:validate`).
 
-### 4. Stripe Payments & 3-Tier Subscription Model
-- Dedicated pricing comparison page (`/pricing`).
-- **3 Tiers & Limits:**
+## Local install
 
-| Tier | Price | Active Job Limit | Recruiter Seats | Custom Branding | Dedicated Career Portal |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **Free** | $0/mo | 1 Job | 1 Seat | Standard | Shared Job Board |
-| **Basic** | $49/mo | 5 Jobs | 3 Seats | Standard | Shared Job Board |
-| **Pro** | $149/mo | Unlimited | Unlimited | Custom Logo & Colors | Dedicated `/careers/:slug` |
-
-- Stripe Checkout integration (`stripe.checkout.Session.create`) with simulated instant test checkout for offline evaluation.
-- Quota enforcement in `/recruiter/jobs/new` and `/company/team/invite` with upgrade prompts.
-
-### 5. Custom Branding & Multi-Tenant Career Pages
-- Company branding settings (`/company/branding`) for Pro tier subscribers:
-  - Upload company logo.
-  - Live brand primary color swatch picker.
-- Dedicated multi-tenant public career pages (`/careers/<slug>`):
-  - E.g.: `/careers/stripe-global`, `/careers/datadog-systems`, `/careers/snowflake-computing`.
-  - Injects dynamic CSS variables (`--company-brand: {{ company.brand_color }}`).
-  - Branded header displaying company logo and custom colors.
-  - Displays exclusively active jobs for that specific employer with direct apply links.
-
----
-
-## 3. Database Architecture (3NF Schema)
-
-### Tables Summary
-
-| Table | Description |
-|:---|:---|
-| **`companies_v2`** | Multi-tenant organization profile with `slug`, `logo_filename`, `brand_color`, `brand_text_color`. |
-| **`subscriptions`** | Tier monetization ledger (`Free`, `Basic`, `Pro`), quotas (`job_limit`, `recruiter_limit`), `custom_branding_enabled`. |
-| **`users_v2`** | Tenant-scoped user credentials, `role` (`admin`, `recruiter`, `applicant`), Werkzeug `password_hash`. |
-| **`recruiter_invitations`** | Secure tokenized invitation records for onboarding colleagues. |
-| **`email_logs`** | Notification audit trail (`recipient_email`, `subject`, `email_type`, `body`, `status`). |
-| **`jobs`** | Job openings linked to `companies_v2` and `users_v2`, `salary_min <= salary_max`. |
-| **`applicants`** | Candidate contact info, LinkedIn, and portfolio URLs. |
-| **`skills`** | Taxonomy catalog of technical skills. |
-| **`applicant_skills`** | M:N Junction table linking applicants and skills with proficiency and experience years. |
-| **`applications`** | Candidate application lifecycle per job (`Applied`, `Screening`, `Interview`, `Hired`, `Rejected`). |
-| **`interviews`** | Interview rounds, ratings (1–5), duration, feedback, and interviewer links. |
-
-### PostgreSQL Triggers, Views & Stored Procedures
-- **Trigger 1 (`trg_applications_update_timestamp`):** Auto-updates `updated_at` on row modifications.
-- **Trigger 2 (`trg_interviews_auto_advance_status`):** Promotes application status to `'Interview'` when an interview round is scheduled.
-- **Trigger 3 (`trg_validate_job_application`):** Prevents submissions to non-open jobs.
-- **View 1 (`v_job_applications_summary`):** Aggregated metrics per job (total, screening, interview, hired, rejected, avg rating).
-- **View 2 (`v_applicant_pipeline_overview`):** Multi-table join powering the Kanban board with concatenated skills (`string_agg`).
-- **Stored Procedure (`sp_schedule_interview`):** Transactional interview scheduling and pipeline advancement.
-- **Table Function (`fn_get_applicants_for_job`):** Retrieves candidate rows for a job.
-
----
-
-## 4. Quickstart Guide
-
-### 1. Configure Environment
-Credentials are pre-configured in `.env`:
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=ats_db
-DB_USER=postgres
-DB_PASSWORD=your_postgres_password
-```
-
-### 2. Run the Application
 ```bash
-python app.py
+cp .env.example .env      # fill in your Supabase credentials
+npm install
+npm run dev               # http://localhost:3000
 ```
-Access the application at: **`http://localhost:5000`**
 
-### 3. Demo Login Credentials
-All demo accounts use password: `password123`
+All environment variables are documented in `.env.example`. `lib/env.ts`
+validates them with zod and fails fast at server boot (`instrumentation.ts`);
+error messages name variables only — secret values are never echoed.
 
-- **Recruiter (Stripe Global - Pro Plan):** `alex_talent` / `password123`
-- **Recruiter (Datadog Systems - Basic Plan):** `elena_hr` / `password123`
-- **Recruiter (Snowflake Computing - Pro Plan):** `sarah_recruiter` / `password123`
-- **Applicant (Candidate Profile):** `david.kim@gmail.com` / `password123`
-- **Platform Administrator:** `admin_system` / `password123`
+## Database migrations
 
-*(Note: The login page includes 1-click Quick-Fill buttons for instant role switching during evaluation.)*
+Migrations live in `supabase/migrations/`, applied in order: `0001_identity.sql`
+through `0010_contact_messages.sql`.
 
----
+Apply them with the Supabase CLI (`supabase db push`) or the dashboard SQL
+editor. To validate them locally without Supabase:
 
-## 5. Verification Suite
-
-Run the automated end-to-end verification script:
 ```bash
-python "C:\Users\amc\.gemini\antigravity\brain\43b0f8ec-0c6c-4503-84ac-ccb022fe051b\scratch\verify_v2_saas.py"
+npm run db:validate
 ```
-Verifies authentication, company registration, email audit logging, Stripe tier upgrades, branded career pages, and all route HTTP 200 responses.
+
+`scripts/validate-migrations.sh` spins up a throwaway PostgreSQL cluster,
+stubs the Supabase-provided `auth` and `storage` schemas, applies every
+migration in order, and runs functional checks (stage transitions,
+terminal-stage lock, re-apply flow, full-text search, seed counts).
+
+> What you have NOT yet tested until you run against a real Supabase project:
+> auth flows, storage signed URLs, RLS interplay with real sessions, and email.
+> See "What remains unverified" below and `docs/deployment.md`.
+
+## Seed data (development only)
+
+```bash
+SEED_CONFIRM=yes npm run seed
+```
+
+- `scripts/seed.ts` refuses to run unless `SEED_CONFIRM` is exactly `yes`.
+- It never runs automatically (no hooks, no build-time import).
+- All data is fictional: organizations are suffixed "(Fictional — Seed Data)"
+  so they can never be mistaken for real records.
+- The reference seed in migration `0009_seed.sql` (categories, cities,
+  pipeline stages, platform defaults) is idempotent and safe in production.
+
+## Bootstrap the first super admin
+
+There is intentionally **no public super-admin registration page**. After
+creating your Supabase project and applying migrations:
+
+```bash
+BOOTSTRAP_ADMIN_EMAIL=owner@example.com npm run bootstrap-admin
+```
+
+`scripts/bootstrap-admin.ts`:
+1. Requires `BOOTSTRAP_ADMIN_EMAIL` (the user must already exist in Supabase Auth).
+2. Refuses if a `super_admin` grant already exists (unless `--force` with a
+   typed re-confirmation).
+3. Asks the operator to **type the target email** to confirm, then grants
+   `user_roles(super_admin, org_id NULL)`.
+4. Prints instructions to disable/delete the script afterwards.
+
+**After use:** delete `scripts/bootstrap-admin.ts` (or remove its npm script)
+so it cannot be run again. Until you do, anyone with terminal access to the
+deploy environment could re-run it.
+
+## Commands
+
+| Script                  | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
+| `npm run dev`           | Start dev server                                     |
+| `npm run build`         | Production build                                     |
+| `npm run start`         | Serve production build                               |
+| `npm run typecheck`     | `tsc --noEmit` (strict + `noUncheckedIndexedAccess`) |
+| `npm run lint`          | ESLint                                               |
+| `npm test`              | Vitest unit/integration tests (`npm run test:watch` for watch mode) |
+| `npm run test:e2e`      | Playwright end-to-end tests                          |
+| `npm run bootstrap-admin` | One-time super-admin provisioning (server-only)    |
+| `npm run seed`          | Dev seed data (requires `SEED_CONFIRM=yes`)          |
+| `npm run db:validate`   | Apply migrations against a throwaway local Postgres  |
+
+## Project structure
+
+```
+app/
+  (public)/                public job board + auth (/, /jobs, /companies,
+                           /login, /register, /invite/[token], …)
+  (candidate)/candidate/   candidate portal (profile, CVs, applications,
+                           job alerts, privacy tools, …)
+  (employer)/employer/     employer/HR portal (jobs, kanban, interviews,
+                           offers, reports, team, …)
+  (admin)/control-center/  super-admin control center (orgs, users, jobs,
+                           approvals, audit logs, settings, security, …)
+components/ui/            accessible design-system primitives (Button, Dialog,
+                          Table, Pagination, FormField, …)
+lib/                      supabase clients, env, auth, rbac, pipeline, email,
+                          notifications, uploads, csv, phone, format, audit
+supabase/migrations/      versioned SQL schema (0001…0010)
+scripts/                  bootstrap-admin.ts, seed.ts, validate-migrations.sh
+tests/                    vitest suites (51 tests, 6 files)
+e2e/                      playwright smoke spec
+docs/                     developer docs
+```
+
+## Security notes
+
+- `SUPABASE_SERVICE_ROLE_KEY` is server-only: `lib/supabase/admin.ts` imports
+  `server-only` so any client bundling fails at build time. It bypasses RLS,
+  so server code must authorize via `lib/rbac.ts` **before** using it.
+- `middleware.ts` is redirect-only; real authorization happens server-side on
+  every page and server action (`requireSessionUser`, `requireOrgRole`,
+  `requireSuperAdmin` — roles are always read fresh from `user_roles`).
+- Defense in depth: RLS policies (migration `0007_rls.sql`) guard direct client
+  queries; a `validate_application_stage_transition` trigger guards stage moves
+  even via raw SQL.
+- See `docs/deployment.md` for the full production-security checklist and
+  `docs/architecture.md` for the security model.
+
+## What remains unverified (as of Oct 2026)
+
+This was built in a sandbox with **no live Supabase credentials**, so the
+following have never been exercised against a real project: auth flows
+(sign-up, email verification, password reset), storage uploads and signed
+URLs, RLS behavior with real sessions, email sending (no `RESEND_API_KEY`),
+and Playwright browser tests (browsers could not be downloaded in the
+sandbox; the spec's assertions were verified against a running server with
+curl instead). The first thing to do with a dev Supabase project is a full
+manual pass: sign-up → candidate role → profile → CV upload → apply →
+withdraw → recruiter review → interview → offer. See the smoke-test checklist
+in `docs/deployment.md`.
+
+## Docs
+
+- `docs/DEVELOPMENT.md` — local development conventions
+- `docs/SCHEMA.md` — database schema overview
+- `docs/deployment.md` — beginner-friendly production deployment guide
+- `docs/email-setup.md` — Supabase Auth emails + optional Resend; the honest
+  unconfigured-email behavior
+- `docs/compliance-pk.md` — launch checklist for qualified Pakistani
+  legal/HR counsel review (not a compliance claim)
+- `docs/free-tier-limits.md` — current Supabase/Vercel/GitHub free quotas
+  (Oct 2026) and migration paths
+- `docs/architecture.md` — system overview: routes, RBAC, RLS, notifications,
+  settings map, multi-tenancy, limitations
+- `FOUNDATION_SUMMARY.md`, `MODULE_SUMMARY_{A,B,C,D}.md` — build reports
+  (foundation + public / candidate / employer / admin modules)
